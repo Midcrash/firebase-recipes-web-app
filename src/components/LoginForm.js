@@ -83,7 +83,7 @@ function LoginForm({ existingUser }) {
               onClick={handleSendResetPasswordEmail}
               className="primary-button"
             >
-              Reset Password
+              Renew Password
             </button>
           </div>
         </form>

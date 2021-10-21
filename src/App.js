@@ -11,12 +11,15 @@ function App() {
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [orderBy, setOrderBy] = useState("publishDateDesc");
 
   FirebaseAuthService.subscribeToAuthChanges(setUser);
 
   useEffect(() => {
     setIsLoading(true);
 
+    // Fetch iinformation when user changes, categoryFilter changes,
+    // or orderBy changes
     fetchRecipes()
       .then((fetchedRecipes) => {
         setRecipes(fetchedRecipes);
@@ -26,10 +29,18 @@ function App() {
         throw error;
       })
       .finally(() => setIsLoading(false));
-  }, [user]);
+  }, [user, categoryFilter, orderBy]);
 
   async function fetchRecipes() {
     const queries = [];
+
+    if (categoryFilter) {
+      queries.push({
+        field: "category",
+        condition: "==",
+        value: categoryFilter,
+      });
+    }
 
     if (!user) {
       queries.push({
@@ -39,12 +50,30 @@ function App() {
       });
     }
 
+    const orderByField = "publishDate";
+    let orderByDirection;
+
+    if (orderBy) {
+      switch (orderBy) {
+        case "publishDateAsc":
+          orderByDirection = "asc";
+          break;
+        case "publishDateDesc":
+          orderByDirection = "desc";
+          break;
+        default:
+          break;
+      }
+    }
+
     let fetchedRecipes = [];
 
     try {
       const response = await FirebaseFirestoreService.readDocuments({
         collection: "recipes",
         queries: queries,
+        orderByField: orderByField,
+        orderByDirection: orderByDirection,
       });
 
       const newRecipes = response.docs.map((recipeDoc) => {
@@ -176,6 +205,42 @@ function App() {
         <LoginForm existingUser={user}></LoginForm>
       </div>
       <div className="main">
+        <div className="row apart filters">
+          <label className="recipe-label input-label">
+            Category:
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="select"
+              required
+            >
+              <option value=""></option>
+              <option value="breadsSandwichesAndPizza">
+                Breads, Sandwiches, and Pizza
+              </option>
+              <option value="eggsAndBreakfast">Eggs & Breakfast</option>
+              <option value="dessertsAndBakedGoods">
+                Desserts & Baked Goods
+              </option>
+              <option value="fishAndSeafood">Fish & Seafood</option>
+              <option value="vegetables">Vegetables</option>
+            </select>
+          </label>
+          <label className="input-label">
+            <select
+              value={orderBy}
+              onChange={(e) => setOrderBy(e.target.value)}
+              className="select"
+            >
+              <option value="publishDateDesc">
+                Publish Date (newest - oldest)
+              </option>
+              <option value="publishDateAsc">
+                Publish Date (oldest - newest)
+              </option>
+            </select>
+          </label>
+        </div>
         <div className="center">
           <div className="recipe-list-box">
             {isLoading ? (
